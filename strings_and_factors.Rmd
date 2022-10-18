@@ -163,3 +163,41 @@ marj_df %>%
 
 ```
 
+## Restaurant Inspections
+```{r}
+data("rest_inspec")
+
+```
+
+```{r}
+rest_inspec %>%
+  group_by(boro, grade) %>%
+  summarize(n_obs = n()) %>%
+  pivot_wider(
+    names_from = grade,
+    values_from = n_obs
+  )
+
+```
+
+```{r}
+rest_inspec = 
+  rest_inspec %>%
+  filter(grade %in% c("A", "B", "C"), boro != "Missing") %>%
+  mutate(boro = str_to_title(boro))
+
+```
+ 
+ 
+Let's find pizza places ...
+```{r}
+rest_inspec %>%
+  filter(str_detect(dba, "[Pp][Ii][Zz][Zz][Aa]")) %>%
+  mutate(
+    boro = fct_infreq(boro),
+    boro = fct_recode(boro, "The City" = "Manhattan")) %>% ### 用fct_recode而不是str_replace
+  ggplot(aes(x = boro)) + 
+  geom_bar()
+
+```
+
