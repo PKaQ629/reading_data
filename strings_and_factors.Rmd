@@ -1,0 +1,165 @@
+---
+title: "stings_and_factors"
+author: "qz2492"
+date: "2022-10-18"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(rvest)
+library(p8105.datasets)
+library(tidyverse)
+```
+
+```{r}
+string_vec = c("my", "name", "is", "jeff")
+
+str_detect(string_vec, "jeff")
+
+str_replace(string_vec, "jeff", "Jeff")
+str_replace(string_vec, "m", "M")
+```
+
+```{r}
+string_vec = c(
+  "i think we all rule for participating",
+  "i think i have been caught",
+  "i think this will be quite fun actually",
+  "it will be fun, i think"
+  )
+# For exact matches, you can designate matches at the beginning or end of a line.
+str_detect(string_vec, "^i think")
+
+str_detect(string_vec, "i think$")
+
+```
+
+```{r}
+# You can designate a list of characters that will count as a match.
+string_vec = c(
+  "Y'all remember Pres. HW Bush?",
+  "I saw a green bush",
+  "BBQ and Bushwalking at Molonglo Gorge",
+  "BUSH -- LIVE IN CONCERT!!"
+  )
+
+str_detect(string_vec,"[Bb]ush")
+```
+
+```{r}
+# You don’t have to list these; instead, you can provide a range of letters or numbers that count as a match.
+string_vec = c(
+  '7th inning stretch',
+  '1st half soon to begin. Texas won the toss.',
+  'she is 5 feet 4 inches tall',
+  '3AM - cant sleep :('
+  )
+
+str_detect(string_vec, "^[0-9][a-zA-Z]")
+```
+
+
+```{r}
+# The character . matches anything.
+string_vec = c(
+  'Its 7:11 in the evening',
+  'want to go to 7-11?',
+  'my flight is AA711',
+  'NetBios: scanning ip 203.167.114.66'
+  )
+
+str_detect(string_vec, "7.11")
+```
+
+
+```{r}
+# find 12
+string_vec = c(
+  "12, 13, 14",
+  "1, 2, 3, 4",
+  "21, 22, 23, 24",
+  "123, 124, 125"
+)
+
+str_detect(string_vec, "12,")
+```
+
+```{r}
+# Some characters are “special”. These include [ and ], ( and ), and .. If you want to search for these, you have to indicate they’re special using \. Unfortunately, \ is also special, so things get weird.
+
+string_vec = c(
+  'The CI is [2, 5]',
+  ':-]',
+  ':-[',
+  'I found the answer on pages [6-7]'
+  )
+
+str_detect(string_vec, "\\[")
+
+str_detect(string_vec, "\\[[0-9]")
+```
+
+## Why factors are weird
+
+```{r}
+vec_sex = factor(c("male", "male", "female", "female"))
+vec_sex
+
+as.numeric(vec_sex)
+
+vec_sex = fct_relevel(vec_sex, "male")
+as.numeric(vec_sex)
+
+```
+
+## NSDUH
+
+```{r}
+nsduh_url = "http://samhda.s3-us-gov-west-1.amazonaws.com/s3fs-public/field-uploads/2k15StateFiles/NSDUHsaeShortTermCHG2015.htm"
+
+table_marj = 
+  read_html(nsduh_url) %>% 
+  html_table() %>% 
+  first() %>%
+  slice(-1)
+```
+
+tidy up the NSDUH data ...
+
+```{r}
+marj_df = 
+  table_marj %>%
+  select(-contains("P value")) %>%
+  pivot_longer(
+    -State, # exclude State column
+    names_to = "age_year",
+    values_to = "percent"
+  ) %>%
+  mutate(
+    percent = str_replace(percent, "[ab]$", ""),
+    percent = as.numeric(percent)
+  ) %>%
+  separate(
+    age_year, 
+    c("age", "year"), 
+    "\\("
+  ) %>%
+  mutate(
+    year = str_replace(year, "\\)", "")
+  ) %>%
+  filter(
+    !(State %in% c("Total U.S.", "Northeast", "Midwest", "South", "West", 
+                 "District of Columbia"))
+  )
+```
+
+```{r}
+marj_df %>%
+  filter(age == "12-17") %>%
+  mutate(State = reorder(State, percent)) %>%
+  ggplot(aes(x = State, y = percent, color = year)) + 
+    geom_point() +
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+
+```
+
